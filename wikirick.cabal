@@ -31,6 +31,9 @@ executable wikirick
     text                        >= 0.11 && < 0.12,
     time                        >= 1.1 && < 1.5,
     xmlhtml                     >= 0.1
+  default-extensions:
+    OverloadedStrings,
+    TemplateHaskell
   if flag(development)
     build-depends:
       snap-loader-dynamic == 0.10.*
