@@ -1,0 +1,40 @@
+name:           wikirick
+version:        0.1
+synopsis:       Project Synopsis Here
+description:    Project Description Here
+license:        AllRightsReserved
+author:         Author
+maintainer:     maintainer@example.com
+stability:      Experimental
+category:       Web
+build-type:     Simple
+cabal-version:  >= 1.2
+
+flag development
+  description: Whether to build the server in development (interpreted) mode
+  default: False
+
+executable wikirick
+  hs-source-dirs: src
+  main-is: Main.hs
+  build-depends:
+    MonadCatchIO-transformers   >= 0.2.1 && < 0.4,
+    base                        >= 4.4 && < 5,
+    bytestring                  >= 0.9.1 && < 0.11,
+    heist                       >= 0.12 && < 0.13,
+    lens                        >= 3.7.6 && < 3.10,
+    mtl                         >= 2 && < 3,
+    snap                        >= 0.11 && < 0.13,
+    snap-core                   >= 0.9 && < 0.11,
+    snap-loader-static          >= 0.9 && < 0.10,
+    snap-server                 >= 0.9 && < 0.11,
+    text                        >= 0.11 && < 0.12,
+    time                        >= 1.1 && < 1.5,
+    xmlhtml                     >= 0.1
+  if flag(development)
+    build-depends:
+      snap-loader-dynamic == 0.10.*
+    cpp-options: -DDEVELOPMENT
+    ghc-options: -threaded -w
+  else
+    ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields -O2 -fno-warn-orphans
