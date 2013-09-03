@@ -25,6 +25,12 @@ jsonConnectionSpec = describe "JSON Connector" $ do
     let value = object ["key" .= ("body" :: String)]
     evalJSONConnection (postJSON value) parseJSON `shouldReturn` Right value
 
+  it "throws the exception when fails to parse jsons" $ do
+    let eval = evalJSONConnection postBrokenJSON parseJSON :: IO (Either T.Text Value)
+    eval `shouldThrow` \(_ :: JSONParseError) ->
+      True
+    return ()
+
   it "makes JSON responses" $ do
     let value = object ["foo" .= ("foo" :: String)]
     Right res <- runJSONConnection nullRequest $ responseJSON value
@@ -33,4 +39,5 @@ jsonConnectionSpec = describe "JSON Connector" $ do
     decode (L.fromStrict body) `shouldBe` Just value
   where
     postJSON = postRaw "/" "application/json" . L.toStrict . encode
+    postBrokenJSON = postRaw "/" "application/json" "{100, 200, 300}"
     nullRequest = return ()
