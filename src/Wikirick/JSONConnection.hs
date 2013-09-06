@@ -5,12 +5,6 @@ import Data.Aeson
 import Data.Typeable
 import Snap
 
-class HasJSONConnection m where
-  getJSONConnection :: m JSONConnection
-
-instance HasJSONConnection (Handler b JSONConnection) where
-  getJSONConnection = get
-
 data JSONParseError = JSONParseError String
   deriving (Show, Typeable)
 instance Exception JSONParseError
@@ -20,9 +14,9 @@ data JSONConnection = JSONConnection
   , _responseJSON :: (MonadSnap m, ToJSON a) => a -> m ()
   }
 
-parseJSON :: (HasJSONConnection m, MonadSnap m, FromJSON a) => m a
-parseJSON = getJSONConnection >>= _parseJSON
+parseJSON :: (MonadState JSONConnection m, MonadSnap m, FromJSON a) => m a
+parseJSON = get >>= _parseJSON
 
-responseJSON :: (HasJSONConnection m, MonadSnap m, ToJSON a) => a -> m ()
-responseJSON v = getJSONConnection >>= \self ->
+responseJSON :: (MonadState JSONConnection m, MonadSnap m, ToJSON a) => a -> m ()
+responseJSON v = get >>= \self ->
   _responseJSON self v

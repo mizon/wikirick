@@ -8,4 +8,5 @@ import Control.Monad as Export
 import Control.Monad.State as Export
 import Control.Monad.Trans as Export
 import Data.Function as Export
+import Data.Maybe as Export
 import Data.Monoid as Export
