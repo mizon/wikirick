@@ -1,23 +1,53 @@
 $(function() {
-  var View = Backbone.View.extend({
-    initialize: function(navigation) {
-      this._navigation = navigation;
+  var AppRouter = Backbone.Router.extend({
+    initialize: function() {
+      Backbone.history.start({pushState: true});
     },
 
+    routes: {
+      ':name/': '_goArticle',
+      ':name/edit': '_goEdit',
+      ':name/source': '_goSource',
+      ':name/history': '_goHistory'
+    },
+
+    _goArticle: function(name) {
+      navigation.select('Article');
+    },
+
+    _goEdit: function(name) {
+      navigation.select('Edit');
+    },
+
+    _goSource: function(name) {
+      navigation.select('Source');
+    },
+
+    _goHistory: function(name) {
+      navigation.select('History');
+    }
+  });
+
+  var AppView = Backbone.View.extend({
     render: function() {
-      this._navigation.render();
+      navigation.render()
     }
   });
 
   var Navigation = Backbone.View.extend({
     el: $('nav'),
 
-    initialize: function() {
-      this._buttons = {};
-      ['Article', 'Edit', 'Source', 'History', 'View All'].forEach(function(name) {
-        this._buttons[name] = NavigationButton.prototype.create(this, name);
-      }, this);
-      this._selected = NavigationButton.prototype.create(this, 'Dummy');
+    create: function(articleName) {
+      var navigation = new Navigation();
+      navigation._articleName = articleName;
+      navigation._buttons = {
+        'Article': NavigationButton.prototype.create('Article', '', articleName),
+        'Edit': NavigationButton.prototype.create('Edit', 'edit', articleName),
+        'Source': NavigationButton.prototype.create('Source', 'source', articleName),
+        'History': NavigationButton.prototype.create('History', 'history', articleName),
+      };
+      navigation._selected = NavigationButton.prototype.create('Dummy', '', articleName);
+      return navigation;
     },
 
     render: function() {
@@ -46,11 +76,12 @@ $(function() {
       'click': '_select'
     },
 
-    create: function(navigation, name) {
+    create: function(name, urlPath, articleName) {
       var button = new NavigationButton();
-      button._navigation = navigation;
       button._name = name;
+      button._urlPath = urlPath;
       button._selected = false;
+      button._articleName = articleName;
       return button;
     },
 
@@ -63,7 +94,7 @@ $(function() {
 
     _select: function() {
       if (!this._selected)
-        this._navigation.select(this._name);
+        appRouter.navigate(this._articleName + '/' + this._urlPath, {trigger: true});
     },
 
     select: function() {
@@ -77,8 +108,7 @@ $(function() {
     }
   });
 
-  var nav = new Navigation();
-  var v = new View(nav);
-  v.render();
-  nav.select('Article');
+  var navigation = Navigation.prototype.create('FrontPage');
+  var appRouter = new AppRouter();
+  new AppView().render();
 });
