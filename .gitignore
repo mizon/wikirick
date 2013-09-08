@@ -3,3 +3,5 @@ cabal.sandbox.config
 site_key.txt
 dist/
 log/
+.sass-cache/
+bin/
