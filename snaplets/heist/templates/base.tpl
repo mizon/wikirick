@@ -1,13 +1,11 @@
+<!doctype html>
 <html>
   <head>
-    <title>Snap web server</title>
-    <link rel="stylesheet" type="text/css" href="/screen.css"/>
+    <title><wiki:title/></title>
+    <link rel="stylesheet" type="text/css" href="/css/screen.css"/>
   </head>
   <body>
-    <div id="content">
-
-      <apply-content/>
-
-    </div>
+    <apply-content/>
+    <wiki:js-libs/>
   </body>
 </html>
