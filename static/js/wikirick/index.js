@@ -28,71 +28,54 @@ $(function() {
   var Navigation = Backbone.View.extend({
     el: $('nav'),
 
-    create: function() {
-      var navigation = new Navigation();
-      navigation._buttons = {
+    initialize: function() {
+      this._buttons = {
         '': NavigationButton.prototype.create('Article', ''),
         'edit': NavigationButton.prototype.create('Edit', 'edit'),
         'source': NavigationButton.prototype.create('Source', 'source'),
         'history': NavigationButton.prototype.create('History', 'history'),
       };
-      navigation._selected = NavigationButton.prototype.create('Dummy', '');
-      return navigation;
-    },
-
-    render: function() {
-      this.$el.children().remove();
-      var ul = $('<ul></ul>');
-      ul.append($('<li class="title">FrontPage</li>'));
-      for (var name in this._buttons) {
-        this._buttons[name].render();
-        ul.append(this._buttons[name].el);
-      }
-      this.$el.append(ul);
+      this._selected = NavigationButton.prototype.create('Dummy', '');
     },
 
     select: function(name) {
       var target = this._buttons[name];
       target.select();
+      console.log(this._getSelected());
       this._selected.unselect();
       this._selected = target;
+    },
+
+    _getSelected: function() {
+      return this.$el.find('li').hasClass('selected');
     }
   });
 
   var NavigationButton = Backbone.View.extend({
-    tagName: 'li',
-
     events: {
       'click': '_select'
     },
 
     create: function(name, actionName) {
-      var button = new NavigationButton();
-      button._name = name;
-      button._actionName = actionName;
-      button._selected = false;
-      return button;
-    },
-
-    render: function() {
-      this.$el.children().remove();
-      var anchor = $('<a></a>');
-      anchor.text(this._name);
-      this.$el.append(anchor);
+      return new NavigationButton({
+        el: $('nav').find('li:contains(' + name + ')')[0],
+        actionName: actionName,
+        selected: false
+      });
     },
 
     _select: function() {
       if (!this._selected)
-        appRouter.navigate(this._actionName, {trigger: true});
+        appRouter.navigate(this.options.actionName, {trigger: true});
     },
 
     select: function() {
-      this._selected = true;
+      this.options.selected = true;
       this.$el.addClass('selected');
     },
 
     unselect: function() {
-      this._selected = false;
+      this.options.selected = false;
       this.$el.removeClass('selected');
     }
   });
@@ -101,14 +84,14 @@ $(function() {
     el: $('#main'),
 
     create: function(actionName) {
-      var view = new ContentView();
-      view._actionName = actionName;
-      return view;
+      return new ContentView({
+        actionName: actionName
+      });
     },
 
     render: function() {
       var $el = this.$el;
-      $.get([rootPath, this._actionName].join('/')).done(function(body) {
+      $.get([rootPath, this.options.actionName].join('/')).done(function(body) {
         $el
           .children()
           .remove()
@@ -121,7 +104,7 @@ $(function() {
   var rootPath = /^(.*\/wiki\/.+?)(\/.*)?$/.exec(window.location.pathname)[1];
   Backbone.history.start({pushState: true, root: rootPath});
 
-  var navigation = Navigation.prototype.create('FrontPage');
+  var navigation = new Navigation();
   var appRouter = new AppRouter();
   new AppView().render();
 });

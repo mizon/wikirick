@@ -3,7 +3,7 @@ module Wikirick.Site
   ) where
 
 import Data.ByteString (ByteString)
-import Snap.Snaplet
+import Snap
 import Snap.Snaplet.Auth
 import Snap.Snaplet.Auth.Backends.JsonFile
 import Snap.Snaplet.Heist
@@ -16,11 +16,12 @@ import qualified Wikirick.Backends.JSONConnection as J
 
 routes :: [(ByteString, AppHandler ())]
 routes =
-  [ ("wiki/", handleArticle)
-  , ("wiki/:title", handleArticle)
-  , ("wiki/:title/edit", handleEdit)
+  [ ("/wiki/", handleArticle)
+  , ("/wiki/:title", handleArticle)
+  , ("/wiki/:title/edit", handleEdit)
   , ("/js", serveDirectory "static/js")
   , ("/css", serveDirectory "static/css")
+  , ("", pass)
   ]
 
 app :: SnapletInit App App
