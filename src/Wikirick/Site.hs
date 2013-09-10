@@ -12,7 +12,9 @@ import Snap.Util.FileServe
 
 import Wikirick.AppHandler
 import Wikirick.Application
+import qualified Wikirick.Backends.Article as A
 import qualified Wikirick.Backends.JSONConnection as J
+import qualified Wikirick.Backends.URLMapper as U
 
 routes :: [(ByteString, AppHandler ())]
 routes =
@@ -27,8 +29,10 @@ routes =
 app :: SnapletInit App App
 app = makeSnaplet "app" "The main snaplet of this application" Nothing $ do
   addRoutes routes
-  h <- nestSnaplet "" heist $ heistInit "templates"
-  s <- nestSnaplet "" sess $ initCookieSessionManager "site_key.txt" "sess" $ Just 3600
-  a <- nestSnaplet "" auth $ initJsonFileAuthManager defAuthSettings sess "users.json"
-  j <- nestSnaplet "" json J.initJSONConnection
-  return $ App h s a j
+  App
+    <$> nestSnaplet "" heist (heistInit "templates")
+    <*> nestSnaplet "" sess (initCookieSessionManager "site_key.txt" "sess" $ Just 3600)
+    <*> nestSnaplet "" auth (initJsonFileAuthManager defAuthSettings sess "users.json")
+    <*> nestSnaplet "" json J.initJSONConnection
+    <*> nestSnaplet "" articles (A.initArticleRepository "database")
+    <*> nestSnaplet "" urlMapper (U.initURLMapper "/")
