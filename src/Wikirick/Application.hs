@@ -1,7 +1,7 @@
 module Wikirick.Application where
 
 import Control.Lens
-import Snap.Snaplet
+import Snap
 import Snap.Snaplet.Heist
 import Snap.Snaplet.Auth
 import Snap.Snaplet.Session
@@ -15,15 +15,15 @@ data App = App
   , _sess :: Snaplet SessionManager
   , _auth :: Snaplet (AuthManager App)
   , _json :: Snaplet JSONConnection
-  , _articles :: Snaplet (ArticleRepository App)
-  , _urlMapper :: Snaplet U.URLMapper
+  , _articles :: Snaplet ArticleRepository
+  , _urlReceiver :: Snaplet U.URLReceiver
   }
 makeLenses ''App
 
 instance HasHeist App where
   heistLens = subSnaplet heist
 
-instance U.HasURLMapper App where
-  refURLMapper = urlMapper
+instance U.HasURLReceiver App where
+  refURLReceiver = urlReceiver . snapletValue
 
 type AppHandler = Handler App App

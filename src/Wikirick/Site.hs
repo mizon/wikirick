@@ -35,4 +35,4 @@ app = makeSnaplet "app" "The main snaplet of this application" Nothing $ do
     <*> nestSnaplet "" auth (initJsonFileAuthManager defAuthSettings sess "users.json")
     <*> nestSnaplet "" json J.initJSONConnection
     <*> nestSnaplet "" articles (A.initArticleRepository "database")
-    <*> nestSnaplet "" urlMapper (U.initURLMapper "/")
+    <*> nestSnaplet "" urlReceiver (U.initURLReceiver $ U.initURLMapper "/")
