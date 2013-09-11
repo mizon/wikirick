@@ -13,8 +13,8 @@ import Wikirick.Import
 import Wikirick.Repository
 import Wikirick.Util
 
-initRepository :: FilePath -> SnapletInit b Repository
-initRepository = makeSnaplet "repo" "Serves Wiki articles" Nothing . return . makeRepository
+initRepository :: Repository -> SnapletInit b Repository
+initRepository = makeSnaplet "repo" "Serves Wiki articles" Nothing . return
 
 makeRepository :: FilePath -> Repository
 makeRepository dbDir = Repository

@@ -34,5 +34,5 @@ app = makeSnaplet "app" "The main snaplet of this application" Nothing $ do
     <*> nestSnaplet "" sess (initCookieSessionManager "site_key.txt" "sess" $ Just 3600)
     <*> nestSnaplet "" auth (initJsonFileAuthManager defAuthSettings sess "users.json")
     <*> nestSnaplet "" json J.initJSONConnection
-    <*> nestSnaplet "" repo (R.initRepository "database")
+    <*> nestSnaplet "" repo (R.initRepository $ R.makeRepository "repo")
     <*> nestSnaplet "" urlReceiver (U.initURLReceiver $ U.initURLMapper "/")
