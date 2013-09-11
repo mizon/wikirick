@@ -1,41 +1,43 @@
 module Wikirick.Backends.Repository
   ( module Wikirick.Repository
   , initRepository
+  , makeRepository
   ) where
 
-import Control.Exception hiding (try, throw)
 import Control.Monad.CatchIO
-import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
 import Snap
-import System.FilePath
-import System.IO.Streams
-import qualified System.IO.Streams.File as F
-import qualified System.IO.Streams.List as SL
-import qualified System.IO.Streams.Text as ST
-import Text.XmlHtml
+import System.Exit
+import qualified System.IO.Streams as S
 
-import Wikirick.Repository
 import Wikirick.Import
+import Wikirick.Repository
+import Wikirick.Util
 
 initRepository :: FilePath -> SnapletInit b Repository
-initRepository dbDir = makeSnaplet "repo" "Serves Wiki articles" Nothing $ do
-  return Repository
-    { _fetchArticle = \title -> do
-        source <- liftIO $ try $ TIO.readFile $ sourcePath title
-        case source of
-          Left (SomeException _) -> throw ArticleNotFound
-          Right source' -> return $ def
-            & articleTitle .~ title
-            & articleSource .~ source'
+initRepository = makeSnaplet "repo" "Serves Wiki articles" Nothing . return . makeRepository
 
-    , _fetchRevision = \title rev ->
-        undefined
+makeRepository :: FilePath -> Repository
+makeRepository dbDir = Repository
+  { _fetchArticle = \title -> liftIO $ do
+      (_, out, _, p) <- runInteractiveProcess "co" ["-p", title ^. unpacked]
+      source <- consumeText out
+      S.getProcessExitCode p >>= \case
+        Just ExitSuccess -> return $ def
+          & articleTitle .~ title
+          & articleSource .~ source
+        _ -> throw ArticleNotFound
 
-    , _postArticle = \a ->
-        undefined
+  , _fetchRevision = undefined
 
-    , _fetchAllArticleTitles = undefined
-    }
-  where
-    sourcePath title = dbDir </> title ^. unpacked
+  , _postArticle = \a -> liftIO $ do
+      _ <- runInteractiveProcess "co" ["l", a ^. articleTitle . unpacked]
+      undefined
+
+  , _fetchAllArticleTitles = undefined
+  } where
+    runInteractiveProcess cmd opts = do
+      (in_, out, err, p) <- S.runInteractiveProcess cmd opts (Just dbDir) Nothing
+      in_' <- S.encodeUtf8 in_
+      out' <- S.decodeUtf8 out
+      err' <- S.decodeUtf8 err
+      return (in_', out', err', p)
