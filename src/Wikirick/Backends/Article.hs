@@ -18,7 +18,7 @@ import Text.XmlHtml
 import Wikirick.Article
 import Wikirick.Import
 
-initArticleRepository :: FilePath -> SnapletInit b (ArticleRepository b)
+initArticleRepository :: FilePath -> SnapletInit b ArticleRepository
 initArticleRepository dbDir = makeSnaplet "ArticleRepository" "Serves Wiki articles" Nothing $ do
   return ArticleRepository
     { _fetchArticle = \title -> do

@@ -1,6 +1,7 @@
 module Wikirick.Article where
 
 import Control.Exception hiding (Handler)
+import Control.Monad.CatchIO
 import qualified Data.Text as T
 import Data.Typeable
 import Snap
@@ -17,28 +18,26 @@ makeLenses ''Article
 instance Default Article where
   def = Article "" "" Nothing
 
-type ARHandler b = Handler b (ArticleRepository b)
-
-data ArticleRepository b = ArticleRepository
-  { _fetchArticle :: T.Text -> ARHandler b Article
-  , _fetchRevision :: T.Text -> Integer -> ARHandler b Article
-  , _postArticle :: Article -> ARHandler b ()
-  , _fetchAllArticleTitles :: ARHandler b [T.Text]
+data ArticleRepository = ArticleRepository
+  { _fetchArticle :: MonadCatchIO m => T.Text -> m Article
+  , _fetchRevision :: MonadCatchIO m => T.Text -> Integer -> m Article
+  , _postArticle :: MonadCatchIO m => Article -> m ()
+  , _fetchAllArticleTitles :: MonadCatchIO m => m [T.Text]
   }
 
-fetchArticle :: T.Text -> ARHandler b Article
+fetchArticle :: (MonadState ArticleRepository m, MonadCatchIO m) => T.Text -> m Article
 fetchArticle t = get >>= \self ->
   _fetchArticle self t
 
-fetchRevision :: T.Text -> Integer -> ARHandler b Article
+fetchRevision :: (MonadState ArticleRepository m, MonadCatchIO m) => T.Text -> Integer -> m Article
 fetchRevision t rev = get >>= \self ->
   _fetchRevision self t rev
 
-postArticle :: Article -> ARHandler b ()
+postArticle :: (MonadState ArticleRepository m, MonadCatchIO m) => Article -> m ()
 postArticle a = get >>= \self ->
   _postArticle self a
 
-fetchAllArticleTitles :: ARHandler b [T.Text]
+fetchAllArticleTitles :: (MonadState ArticleRepository m, MonadCatchIO m) => m [T.Text]
 fetchAllArticleTitles = get >>= _fetchAllArticleTitles
 
 data ArticleNotFound = ArticleNotFound deriving (Typeable, Show)
