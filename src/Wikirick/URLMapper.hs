@@ -1,6 +1,5 @@
 module Wikirick.URLMapper where
 
-import Heist
 import Heist.Interpreted
 import Snap
 
