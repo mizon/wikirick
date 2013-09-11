@@ -12,7 +12,7 @@ import Snap.Util.FileServe
 
 import Wikirick.AppHandler
 import Wikirick.Application
-import qualified Wikirick.Backends.Article as A
+import qualified Wikirick.Backends.Repository as R
 import qualified Wikirick.Backends.JSONConnection as J
 import qualified Wikirick.Backends.URLMapper as U
 
@@ -34,5 +34,5 @@ app = makeSnaplet "app" "The main snaplet of this application" Nothing $ do
     <*> nestSnaplet "" sess (initCookieSessionManager "site_key.txt" "sess" $ Just 3600)
     <*> nestSnaplet "" auth (initJsonFileAuthManager defAuthSettings sess "users.json")
     <*> nestSnaplet "" json J.initJSONConnection
-    <*> nestSnaplet "" articles (A.initArticleRepository "database")
+    <*> nestSnaplet "" repo (R.initRepository "database")
     <*> nestSnaplet "" urlReceiver (U.initURLReceiver $ U.initURLMapper "/")

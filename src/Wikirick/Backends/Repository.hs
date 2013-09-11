@@ -1,6 +1,6 @@
-module Wikirick.Backends.Article
-  ( module Wikirick.Article
-  , initArticleRepository
+module Wikirick.Backends.Repository
+  ( module Wikirick.Repository
+  , initRepository
   ) where
 
 import Control.Exception hiding (try, throw)
@@ -15,17 +15,17 @@ import qualified System.IO.Streams.List as SL
 import qualified System.IO.Streams.Text as ST
 import Text.XmlHtml
 
-import Wikirick.Article
+import Wikirick.Repository
 import Wikirick.Import
 
-initArticleRepository :: FilePath -> SnapletInit b ArticleRepository
-initArticleRepository dbDir = makeSnaplet "ArticleRepository" "Serves Wiki articles" Nothing $ do
-  return ArticleRepository
+initRepository :: FilePath -> SnapletInit b Repository
+initRepository dbDir = makeSnaplet "repo" "Serves Wiki articles" Nothing $ do
+  return Repository
     { _fetchArticle = \title -> do
         source <- liftIO $ try $ TIO.readFile $ sourcePath title
         case source of
           Left (SomeException _) -> throw ArticleNotFound
-          Right source'-> return $ def
+          Right source' -> return $ def
             & articleTitle .~ title
             & articleSource .~ source'
 

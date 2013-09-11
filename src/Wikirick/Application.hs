@@ -6,7 +6,7 @@ import Snap.Snaplet.Heist
 import Snap.Snaplet.Auth
 import Snap.Snaplet.Session
 
-import Wikirick.Article
+import Wikirick.Repository
 import Wikirick.JSONConnection
 import qualified Wikirick.URLMapper as U
 
@@ -15,7 +15,7 @@ data App = App
   , _sess :: Snaplet SessionManager
   , _auth :: Snaplet (AuthManager App)
   , _json :: Snaplet JSONConnection
-  , _articles :: Snaplet ArticleRepository
+  , _repo :: Snaplet Repository
   , _urlReceiver :: Snaplet U.URLReceiver
   }
 makeLenses ''App

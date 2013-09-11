@@ -13,12 +13,12 @@ initJSONConnection :: SnapletInit b JSONConnection
 initJSONConnection = makeSnaplet "JSONConnection" "Provide a JSON connector" Nothing $ do
   return JSONConnection
     { _parseJSON = do
-        reqBody <- readRequestBody maxReads
-        either throwError return $ eitherDecode reqBody
+      reqBody <- readRequestBody maxReads
+      either throwError return $ eitherDecode reqBody
 
     , _responseJSON = \v -> do
-        modifyResponse $ setContentType "application/json"
-        writeLBS $ encode v
+      modifyResponse $ setContentType "application/json"
+      writeLBS $ encode v
     }
   where
     maxReads = 1024 ^ (2 :: Int)  -- 1MB

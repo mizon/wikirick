@@ -9,7 +9,7 @@ import qualified Heist.Interpreted as I
 import Snap
 import System.FilePath
 
-import Wikirick.Article
+import Wikirick.Repository
 import Wikirick.Import
 import Wikirick.URLMapper
 

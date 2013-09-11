@@ -4,8 +4,8 @@ import Heist
 import Heist.Interpreted
 import Snap
 
-import Wikirick.Article
 import Wikirick.Import
+import Wikirick.Repository
 
 data URL
   = ArticlePath Article
