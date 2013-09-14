@@ -35,7 +35,7 @@ repositorySpec = describe "article repository" $
       pageOne' `hasSameContent` pageOne
       pageTwo' `hasSameContent` pageTwo
 
-    it "fetchs an article of specified revision" $ do
+    it "increments revisions of saved articles" $ do
       let article = Article "SomePage" "Hello" Nothing
 
       runRepo $ postArticle article
@@ -46,14 +46,15 @@ repositorySpec = describe "article repository" $
       articleRev2 <- runRepo $ fetchArticle "SomePage"
       articleRev2 ^. articleRevision `shouldBe` Just 2
 
+repositoryDir :: FilePath
+repositoryDir = "testrepo"
+
 runRepo :: Monad m => StateT Repository m a -> m a
 runRepo = flip evalStateT repository where
-  repository = undefined
+  repository = makeRepository repositoryDir
 
 setupDir :: Expectation -> Expectation
 setupDir e = do
   D.createDirectory repositoryDir
   D.createDirectory $ repositoryDir </> "RCS"
   e `finally` D.removeDirectoryRecursive repositoryDir
-  where
-    repositoryDir = "testrepo"
