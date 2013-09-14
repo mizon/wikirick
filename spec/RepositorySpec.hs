@@ -46,6 +46,9 @@ repositorySpec = describe "article repository" $
       articleRev2 <- runRepo $ fetchArticle "SomePage"
       articleRev2 ^. articleRevision `shouldBe` Just 2
 
+    it "fails to fetch non existed files" $ do
+      runRepo (fetchArticle "SomePage") `shouldThrow` (== ArticleNotFound)
+
 repositoryDir :: FilePath
 repositoryDir = "testrepo"
 

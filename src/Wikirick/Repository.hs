@@ -2,6 +2,7 @@ module Wikirick.Repository where
 
 import Control.Exception hiding (Handler)
 import Control.Monad.CatchIO
+import qualified Data.ByteString as BS
 import qualified Data.Text as T
 import Data.Typeable
 import Snap
@@ -40,5 +41,11 @@ postArticle a = get >>= \self ->
 fetchAllArticleTitles :: (MonadState Repository m, MonadCatchIO m) => m [T.Text]
 fetchAllArticleTitles = get >>= _fetchAllArticleTitles
 
-data ArticleNotFound = ArticleNotFound deriving (Typeable, Show)
-instance Exception ArticleNotFound
+data RepositoryException
+  = ArticleNotFound
+  | RepositoryException BS.ByteString deriving
+    ( Eq
+    , Show
+    , Typeable
+    )
+instance Exception RepositoryException

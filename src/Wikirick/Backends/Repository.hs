@@ -5,9 +5,15 @@ module Wikirick.Backends.Repository
   ) where
 
 import Control.Monad.CatchIO
+import qualified Data.Attoparsec as A
+import qualified Data.ByteString as BS
+import qualified Data.Char as C
+import Data.Word
 import Snap
 import System.Exit
+import System.FilePath
 import qualified System.IO.Streams as S
+import qualified System.IO.Streams.Attoparsec as SA
 
 import Wikirick.Import
 import Wikirick.Repository
@@ -20,9 +26,9 @@ makeRepository :: FilePath -> Repository
 makeRepository dbDir = Repository
   { _fetchArticle = \title -> liftIO $ do
       (_, out, _, p) <- runInteractiveProcess "co" ["-p", title ^. unpacked]
-      source <- consumeText out
-      S.getProcessExitCode p >>= \case
-        Just ExitSuccess -> return $ def
+      source <- consumeText =<< S.decodeUtf8 out
+      S.waitForProcess p >>= \case
+        ExitSuccess -> return $ def
           & articleTitle .~ title
           & articleSource .~ source
         _ -> throw ArticleNotFound
@@ -30,14 +36,41 @@ makeRepository dbDir = Repository
   , _fetchRevision = undefined
 
   , _postArticle = \a -> liftIO $ do
-      _ <- runInteractiveProcess "co" ["l", a ^. articleTitle . unpacked]
-      undefined
+      checkOutRCSFile a
+      S.withFileAsOutput (articlePath a) $ \out -> do
+        textOut <- S.encodeUtf8 out
+        S.write (Just $ a ^. articleSource) textOut
+
+      (in_, _, err, p) <- runInteractiveProcess "ci" [a ^. articleTitle . unpacked]
+      S.write Nothing in_
+      S.waitForProcess p >>= \case
+        ExitSuccess -> return ()
+        _ -> throwFromRCSError err
 
   , _fetchAllArticleTitles = undefined
   } where
-    runInteractiveProcess cmd opts = do
-      (in_, out, err, p) <- S.runInteractiveProcess cmd opts (Just dbDir) Nothing
-      in_' <- S.encodeUtf8 in_
-      out' <- S.decodeUtf8 out
-      err' <- S.decodeUtf8 err
-      return (in_', out', err', p)
+    checkOutRCSFile article = do
+      (_, _, err, p) <- runInteractiveProcess "co" ["-l", article ^. articleTitle . unpacked]
+      S.waitForProcess p >>= \case
+        ExitSuccess -> return ()
+        _ -> throwFromRCSError err `catch` \case
+          ArticleNotFound -> return ()
+          e -> throw e
+
+    articlePath a = dbDir </> a ^. articleTitle . unpacked
+    runInteractiveProcess cmd opts = S.runInteractiveProcess cmd opts (Just dbDir) Nothing
+
+throwFromRCSError :: S.InputStream BS.ByteString -> IO ()
+throwFromRCSError = throw <=< SA.parseFromStream errorParser
+
+errorParser :: A.Parser RepositoryException
+errorParser
+    = ArticleNotFound <$ (skipToAfterColon *> skipToAfterColon *> A.string " No such file or directory\n")
+  <|> RepositoryException <$> A.takeTill (== c2w '\n')
+
+skipToAfterColon :: A.Parser ()
+skipToAfterColon = A.skipWhile (/= colon) <* A.word8 colon where
+  colon = c2w ':'
+
+c2w :: Char -> Word8
+c2w = fromIntegral . C.ord
