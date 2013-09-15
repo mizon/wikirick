@@ -4,20 +4,28 @@ import Control.Exception hiding (Handler)
 import Control.Monad.CatchIO
 import qualified Data.ByteString as BS
 import qualified Data.Text as T
+import qualified Data.Time as Time
 import Data.Typeable
 import Snap
 
 import Wikirick.Import
 
+data EditLog = EditLog
+  { _editDate :: Time.UTCTime
+  , _editComment :: T.Text
+  } deriving (Show, Eq)
+makeLenses ''EditLog
+
 data Article = Article
   { _articleTitle :: T.Text
   , _articleSource :: T.Text
   , _articleRevision :: Maybe Integer
-  } deriving (Show , Eq)
+  , _editLog :: Maybe EditLog
+  } deriving (Show, Eq)
 makeLenses ''Article
 
 instance Default Article where
-  def = Article "" "" Nothing
+  def = Article "" "" Nothing Nothing
 
 data Repository = Repository
   { _fetchArticle :: MonadCatchIO m => T.Text -> m Article

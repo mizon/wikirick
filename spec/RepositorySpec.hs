@@ -3,6 +3,9 @@ module RepositorySpec
   ) where
 
 import Control.Exception
+import qualified Data.Text as T
+import qualified Data.Time as Time
+import Data.Time.Lens
 import qualified System.Directory as D
 import System.FilePath
 import Test.Hspec
@@ -15,18 +18,26 @@ hasSameContent a a' = do
   a ^. articleTitle `shouldBe` a' ^. articleTitle
   a ^. articleSource `shouldBe` a' ^. articleSource
 
+infix 1 `hasSameContent`
+
 repositorySpec :: Spec
 repositorySpec = describe "article repository" $
   around setupDir $ do
     it "saves an article" $ do
-      let article = Article "SomePage" "Hello" Nothing
+      let article = makeArticle "SomePage" "Hello"
       runRepo $ postArticle article
+
       article' <- runRepo $ fetchArticle "SomePage"
       article' `hasSameContent` article
 
+      today <- Time.zonedTimeToUTC <$> Time.getZonedTime
+      article' ^? editDate' . year `shouldBe` Just (today ^. year)
+      article' ^? editDate' . month `shouldBe` Just (today ^. month)
+      article' ^? editDate' . day `shouldBe` Just (today ^. day)
+
     it "fetchs an article" $ do
-      let pageOne = Article "PageOne" "Hello" Nothing
-          pageTwo = Article "PageTwo" "Bye" Nothing
+      let pageOne = makeArticle "PageOne" "Hello"
+          pageTwo = makeArticle "PageTwo" "Bye"
       runRepo $ do
         postArticle pageOne
         postArticle pageTwo
@@ -36,7 +47,7 @@ repositorySpec = describe "article repository" $
       pageTwo' `hasSameContent` pageTwo
 
     it "increments revisions of saved articles" $ do
-      let article = Article "SomePage" "Hello" Nothing
+      let article = makeArticle "SomePage" "Hello"
 
       runRepo $ postArticle article
       articleRev1 <- runRepo $ fetchArticle "SomePage"
@@ -47,8 +58,8 @@ repositorySpec = describe "article repository" $
       articleRev2 ^. articleRevision `shouldBe` Just 2
 
     it "fetches an article which has specified revison" $ do
-      let rev1 = Article "SomePage" "Hello" Nothing
-          rev2 = Article "SomePage" "Bye" Nothing
+      let rev1 = makeArticle "SomePage" "Hello"
+          rev2 = makeArticle "SomePage" "Bye"
       runRepo $ do
         postArticle rev1
         postArticle rev2
@@ -57,14 +68,20 @@ repositorySpec = describe "article repository" $
       rev1' `hasSameContent` rev1
       rev2' `hasSameContent` rev2
 
-    it "fetches with invalid revision" $ do
-      runRepo $ postArticle $ Article "SomePage" "Hello" Nothing
+    it "fails to fetch invalid revision" $ do
+      runRepo $ postArticle $ makeArticle "SomePage" "Hello"
       runRepo (fetchRevision "SomePage" 0) `shouldThrow` (== InvalidRevision)
       runRepo (fetchRevision "SomePage" (-5)) `shouldThrow` (== InvalidRevision)
 
     it "fails to fetch non existed files" $ do
       runRepo (fetchArticle "SomePage") `shouldThrow` (== ArticleNotFound)
       runRepo (fetchRevision "SomePage" 1) `shouldThrow` (== ArticleNotFound)
+
+editDate' :: Traversal' Article Time.UTCTime
+editDate' = editLog . _Just . editDate
+
+makeArticle :: T.Text -> T.Text -> Article
+makeArticle t src = def & articleTitle .~ t & articleSource .~ src
 
 repositoryDir :: FilePath
 repositoryDir = "testrepo"
