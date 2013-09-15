@@ -24,19 +24,12 @@ initRepository = makeSnaplet "repo" "Serves Wiki articles" Nothing . return
 
 makeRepository :: FilePath -> Repository
 makeRepository dbDir = Repository
-  { _fetchArticle = \title -> liftIO $ do
-      (_, out, err, p) <- runInteractiveProcess "co" ["-p", title ^. unpacked]
-      source <- consumeText =<< S.decodeUtf8 out
-      S.waitForProcess p >>= \case
-        ExitSuccess -> do
-          rev <- SA.parseFromStream revParser err
-          return $ def
-            & articleTitle .~ title
-            & articleSource .~ source
-            & articleRevision .~ Just rev
-        _ -> throwFromRCSError err
+  { _fetchArticle = \title ->
+      fetchArticle' title ["-p", title ^. unpacked]
 
-  , _fetchRevision = undefined
+  , _fetchRevision = \title rev -> do
+      when (rev < 1) $ throw InvalidRevision
+      fetchArticle' title ["-r1." <> show rev, "-p", title ^. unpacked]
 
   , _postArticle = \a -> liftIO $ do
       checkOutRCSFile a
@@ -52,6 +45,18 @@ makeRepository dbDir = Repository
 
   , _fetchAllArticleTitles = undefined
   } where
+    fetchArticle' title coOptions = liftIO $ do
+      (_, out, err, p) <- runInteractiveProcess "co" coOptions
+      source <- consumeText =<< S.decodeUtf8 out
+      S.waitForProcess p >>= \case
+        ExitSuccess -> do
+          rev <- SA.parseFromStream revParser err
+          return $ def
+            & articleTitle .~ title
+            & articleSource .~ source
+            & articleRevision .~ Just rev
+        _ -> throwFromRCSError err
+
     checkOutRCSFile article = do
       (_, _, err, p) <- runInteractiveProcess "co" ["-l", article ^. articleTitle . unpacked]
       S.waitForProcess p >>= \case
@@ -68,11 +73,10 @@ throwFromRCSError = throw <=< SA.parseFromStream errorParser
 
 errorParser :: A.Parser RepositoryException
 errorParser
-    = ArticleNotFound <$ (skipToAfterColon *> skipToAfterColon *> A.string " No such file or directory\n")
-  <|> RepositoryException <$> A.takeTill (== c2w '\n')
-
-skipToAfterColon :: A.Parser ()
-skipToAfterColon = skipTill $ A.word8 $ c2w ':'
+    = ArticleNotFound <$ A.try (skipToAfterColon *> skipToAfterColon *> A.string " No such file or directory\n")
+  <|> RepositoryException <$> consumeAll where
+    consumeAll = BS.pack <$> A.manyTill A.anyWord8 A.endOfInput
+    skipToAfterColon = skipTill $ A.word8 $ c2w ':'
 
 revParser :: A.Parser Integer
 revParser = do

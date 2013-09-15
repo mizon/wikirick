@@ -43,6 +43,7 @@ fetchAllArticleTitles = get >>= _fetchAllArticleTitles
 
 data RepositoryException
   = ArticleNotFound
+  | InvalidRevision
   | RepositoryException BS.ByteString deriving
     ( Eq
     , Show

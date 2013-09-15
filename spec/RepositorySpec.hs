@@ -46,8 +46,25 @@ repositorySpec = describe "article repository" $
       articleRev2 <- runRepo $ fetchArticle "SomePage"
       articleRev2 ^. articleRevision `shouldBe` Just 2
 
+    it "fetches an article which has specified revison" $ do
+      let rev1 = Article "SomePage" "Hello" Nothing
+          rev2 = Article "SomePage" "Bye" Nothing
+      runRepo $ do
+        postArticle rev1
+        postArticle rev2
+      rev1' <- runRepo $ fetchRevision "SomePage" 1
+      rev2' <- runRepo $ fetchRevision "SomePage" 2
+      rev1' `hasSameContent` rev1
+      rev2' `hasSameContent` rev2
+
+    it "fetches with invalid revision" $ do
+      runRepo $ postArticle $ Article "SomePage" "Hello" Nothing
+      runRepo (fetchRevision "SomePage" 0) `shouldThrow` (== InvalidRevision)
+      runRepo (fetchRevision "SomePage" (-5)) `shouldThrow` (== InvalidRevision)
+
     it "fails to fetch non existed files" $ do
       runRepo (fetchArticle "SomePage") `shouldThrow` (== ArticleNotFound)
+      runRepo (fetchRevision "SomePage" 1) `shouldThrow` (== ArticleNotFound)
 
 repositoryDir :: FilePath
 repositoryDir = "testrepo"
