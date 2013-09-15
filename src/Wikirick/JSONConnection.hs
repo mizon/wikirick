@@ -5,7 +5,7 @@ import Data.Aeson
 import Data.Typeable
 import Snap
 
-data JSONParseError = JSONParseError String deriving (Show , Typeable)
+data JSONParseError = JSONParseError String deriving (Eq, Show, Typeable)
 instance Exception JSONParseError
 
 data JSONConnection = JSONConnection

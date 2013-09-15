@@ -27,9 +27,8 @@ jsonConnectionSpec = describe "JSON Connector" $ do
 
   it "throws the exception when fails to parse jsons" $ do
     let eval = evalJSONConnection postBrokenJSON parseJSON :: IO (Either T.Text Value)
-    eval `shouldThrow` \(_ :: JSONParseError) ->
-      True
-    return ()
+    eval `shouldThrow` \case
+      JSONParseError _ -> True
 
   it "makes JSON responses" $ do
     let value = object ["foo" .= ("foo" :: String)]
