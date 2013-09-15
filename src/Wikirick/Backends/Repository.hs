@@ -25,13 +25,16 @@ initRepository = makeSnaplet "repo" "Serves Wiki articles" Nothing . return
 makeRepository :: FilePath -> Repository
 makeRepository dbDir = Repository
   { _fetchArticle = \title -> liftIO $ do
-      (_, out, _, p) <- runInteractiveProcess "co" ["-p", title ^. unpacked]
+      (_, out, err, p) <- runInteractiveProcess "co" ["-p", title ^. unpacked]
       source <- consumeText =<< S.decodeUtf8 out
       S.waitForProcess p >>= \case
-        ExitSuccess -> return $ def
-          & articleTitle .~ title
-          & articleSource .~ source
-        _ -> throw ArticleNotFound
+        ExitSuccess -> do
+          rev <- SA.parseFromStream revParser err
+          return $ def
+            & articleTitle .~ title
+            & articleSource .~ source
+            & articleRevision .~ Just rev
+        _ -> throwFromRCSError err
 
   , _fetchRevision = undefined
 
@@ -60,7 +63,7 @@ makeRepository dbDir = Repository
     articlePath a = dbDir </> a ^. articleTitle . unpacked
     runInteractiveProcess cmd opts = S.runInteractiveProcess cmd opts (Just dbDir) Nothing
 
-throwFromRCSError :: S.InputStream BS.ByteString -> IO ()
+throwFromRCSError :: S.InputStream BS.ByteString -> IO a
 throwFromRCSError = throw <=< SA.parseFromStream errorParser
 
 errorParser :: A.Parser RepositoryException
@@ -69,8 +72,20 @@ errorParser
   <|> RepositoryException <$> A.takeTill (== c2w '\n')
 
 skipToAfterColon :: A.Parser ()
-skipToAfterColon = A.skipWhile (/= colon) <* A.word8 colon where
-  colon = c2w ':'
+skipToAfterColon = skipTill $ A.word8 $ c2w ':'
+
+revParser :: A.Parser Integer
+revParser = do
+  skipTill $ A.word8 $ c2w '\n'
+  skipTill $ A.word8 $ c2w '.'
+  rev <- A.manyTill A.anyWord8 (A.word8 $ c2w '\n')
+  return $ read $ w2c <$> rev
+
+w2c :: Word8 -> Char
+w2c = C.chr . fromIntegral
 
 c2w :: Char -> Word8
 c2w = fromIntegral . C.ord
+
+skipTill :: A.Parser a -> A.Parser ()
+skipTill = void . A.manyTill A.anyWord8
