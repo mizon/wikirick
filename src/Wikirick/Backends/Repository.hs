@@ -4,6 +4,7 @@ module Wikirick.Backends.Repository
   , makeRepository
   ) where
 
+import qualified Control.Concurrent.ReadWriteLock as RWL
 import Control.Monad.CatchIO
 import qualified Data.Attoparsec as A
 import qualified Data.ByteString as BS
@@ -25,30 +26,36 @@ import Wikirick.Util
 initRepository :: Repository -> SnapletInit b Repository
 initRepository = makeSnaplet "repo" "Serves Wiki articles" Nothing . return
 
-makeRepository :: FilePath -> Repository
-makeRepository dbDir = Repository
-  { _fetchArticle = \title ->
-      fetchArticle' title ["-p", title ^. unpacked]
+makeRepository :: FilePath -> IO Repository
+makeRepository dbDir = do
+  lock <- RWL.new
+  return Repository
+    { _fetchArticle = \title -> liftIO $
+        RWL.withRead lock $
+          fetchArticle' title ["-p", title ^. unpacked]
 
-  , _fetchRevision = \title rev -> do
-      when (rev < 1) $ throw InvalidRevision
-      fetchArticle' title ["-r1." <> show rev, "-p", title ^. unpacked]
+    , _fetchRevision = \title rev -> liftIO $
+        RWL.withRead lock $ do
+          when (rev < 1) $ throw InvalidRevision
+          fetchArticle' title ["-r1." <> show rev, "-p", title ^. unpacked]
 
-  , _postArticle = \a -> liftIO $ do
-      checkOutRCSFile a
-      S.withFileAsOutput (articlePath a) $ \out -> do
-        textOut <- S.encodeUtf8 out
-        S.write (Just $ a ^. articleSource) textOut
+    , _postArticle = \a -> liftIO $
+        RWL.withWrite lock $ do
+          checkOutRCSFile a
+          S.withFileAsOutput (articlePath a) $ \out -> do
+            textOut <- S.encodeUtf8 out
+            S.write (Just $ a ^. articleSource) textOut
 
-      (in_, _, err, p) <- runInteractiveProcess "ci" [a ^. articleTitle . unpacked]
-      S.write Nothing in_
-      S.waitForProcess p >>= \case
-        ExitSuccess -> return ()
-        _ -> throwFromRCSError err
+          (in_, _, err, p) <- runInteractiveProcess "ci" [a ^. articleTitle . unpacked]
+          S.write Nothing in_
+          S.waitForProcess p >>= \case
+            ExitSuccess -> return ()
+            _ -> throwFromRCSError err
 
-  , _fetchAllArticleTitles = undefined
-  } where
-    fetchArticle' title coOptions = liftIO $ do
+    , _fetchAllArticleTitles = undefined
+    }
+  where
+    fetchArticle' title coOptions = do
       (_, out, err, p) <- runInteractiveProcess "co" coOptions
       source <- consumeText =<< S.decodeUtf8 out
       a <- S.waitForProcess p >>= \case

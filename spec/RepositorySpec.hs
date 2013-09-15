@@ -86,9 +86,10 @@ makeArticle t src = def & articleTitle .~ t & articleSource .~ src
 repositoryDir :: FilePath
 repositoryDir = "testrepo"
 
-runRepo :: Monad m => StateT Repository m a -> m a
-runRepo = flip evalStateT repository where
-  repository = makeRepository repositoryDir
+runRepo :: MonadIO m => StateT Repository m a -> m a
+runRepo s = do
+  repo <- liftIO $ makeRepository repositoryDir
+  evalStateT s repo
 
 setupDir :: Expectation -> Expectation
 setupDir e = do
