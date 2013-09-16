@@ -1,19 +1,18 @@
 module Wikirick.Site
-  ( app
+  ( routes
+  , app
   ) where
 
 import Data.ByteString (ByteString)
 import Snap
-import Snap.Snaplet.Auth
-import Snap.Snaplet.Auth.Backends.JsonFile
 import Snap.Snaplet.Heist
 import Snap.Snaplet.Session.Backends.CookieSession
 import Snap.Util.FileServe
 
 import Wikirick.AppHandler
 import Wikirick.Application
-import qualified Wikirick.Backends.Repository as R
 import qualified Wikirick.Backends.JSONConnection as J
+import qualified Wikirick.Backends.Repository as R
 import qualified Wikirick.Backends.URLMapper as U
 
 routes :: [(ByteString, AppHandler ())]
@@ -29,10 +28,10 @@ routes =
 app :: SnapletInit App App
 app = makeSnaplet "app" "The main snaplet of this application" Nothing $ do
   addRoutes routes
+  r <- liftIO $ R.makeRepository "repo"
   App
     <$> nestSnaplet "" heist (heistInit "templates")
     <*> nestSnaplet "" sess (initCookieSessionManager "site_key.txt" "sess" $ Just 3600)
-    <*> nestSnaplet "" auth (initJsonFileAuthManager defAuthSettings sess "users.json")
     <*> nestSnaplet "" json J.initJSONConnection
-    <*> nestSnaplet "" repo (R.initRepository $ R.makeRepository "repo")
+    <*> nestSnaplet "" repo (R.initRepository r)
     <*> nestSnaplet "" urlReceiver (U.initURLReceiver $ U.initURLMapper "/")
