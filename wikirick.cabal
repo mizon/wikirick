@@ -60,7 +60,7 @@ executable wikirick
   else
     ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields -O2 -fno-warn-orphans
 
-test-suite unit-test
+test-suite wikirick-spec
   build-depends:
     containers                  >= 0.5,
     hspec                       >= 1.7.2,
