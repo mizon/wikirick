@@ -58,24 +58,18 @@ makeRepository dbDir = do
     fetchArticle' title coOptions = do
       (_, out, err, p) <- runInteractiveProcess "co" coOptions
       source <- consumeText =<< S.decodeUtf8 out
-      a <- S.waitForProcess p >>= \case
-        ExitSuccess -> do
-          rev <- SA.parseFromStream revParser err
-          return $ def
-            & articleTitle .~ title
-            & articleSource .~ source
-            & articleRevision .~ Just rev
+      rev <- S.waitForProcess p >>= \case
+        ExitSuccess -> SA.parseFromStream revParser err
         _ -> throwFromRCSError err
-
-      case a ^. articleRevision of
-        Just rev -> do
-          (_, out', err', p') <- runInteractiveProcess "rlog" ["-r1." <> show rev, title ^. unpacked]
-          S.waitForProcess p' >>= \case
-            ExitSuccess -> do
-              log' <- SA.parseFromStream rlogParser out'
-              return $ a & editLog .~ Just log'
-            _ -> throwFromRCSError err'
-        _ -> fail "fetchArticle': must not happen"
+      (_, out', err', p') <- runInteractiveProcess "rlog" ["-r1." <> show rev, title ^. unpacked]
+      log' <- S.waitForProcess p' >>= \case
+        ExitSuccess -> SA.parseFromStream rlogParser out'
+        _ -> throwFromRCSError err'
+      return $ def
+        & articleTitle .~ title
+        & articleSource .~ source
+        & articleRevision .~ Just rev
+        & editLog .~ Just log'
 
     checkOutRCSFile article = do
       (_, _, err, p) <- runInteractiveProcess "co" ["-l", article ^. articleTitle . unpacked]
