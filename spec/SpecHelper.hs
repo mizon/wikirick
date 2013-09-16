@@ -3,6 +3,7 @@ module SpecHelper where
 import Data.Foldable
 import Data.IORef
 import qualified Data.Sequence as S
+import qualified Data.Text as T
 import Snap
 import Snap.Snaplet.Heist
 import Snap.Snaplet.Session.Backends.CookieSession
@@ -57,3 +58,13 @@ newSpy = do
         vs <- readIORef values
         toList vs `shouldBe` expectations
     }
+
+type Response' = Either T.Text Response
+
+mustBeSuccess :: Response' -> IO Response
+mustBeSuccess = either (fail . T.unpack) pure
+
+statusShouldBe :: Response' -> Int -> Expectation
+statusShouldBe res st = do
+  res' <- mustBeSuccess res
+  rspStatus res' `shouldBe` st
