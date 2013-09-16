@@ -35,7 +35,7 @@ repositorySpec = describe "article repository" $
       article' ^? editDate' . month `shouldBe` Just (today ^. month)
       article' ^? editDate' . day `shouldBe` Just (today ^. day)
 
-    it "fetchs an article" $ do
+    it "fetchs articles" $ do
       let pageOne = makeArticle "PageOne" "Hello"
           pageTwo = makeArticle "PageTwo" "Bye"
       runRepo $ do
