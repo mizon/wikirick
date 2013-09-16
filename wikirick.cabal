@@ -40,6 +40,7 @@ executable wikirick
     xmlhtml                     >= 0.1
   default-extensions:
     DeriveDataTypeable,
+    DisambiguateRecordFields,
     FlexibleContexts,
     FlexibleInstances,
     LambdaCase,
@@ -89,6 +90,7 @@ test-suite unit-test
     xmlhtml                     >= 0.1
   default-extensions:
     DeriveDataTypeable,
+    DisambiguateRecordFields,
     FlexibleContexts,
     FlexibleInstances,
     LambdaCase,
