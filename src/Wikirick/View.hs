@@ -11,12 +11,11 @@ import Wikirick.Repository
 import Wikirick.Import
 
 editor :: Monad m => Article -> Splice m
-editor a = I.callTemplate "editor"
-  [ ("wiki:title", I.textSplice $ a ^. articleTitle)
-  , ("wiki:content", I.callTemplate "editor" [])
-  , ("wiki:source", I.textSplice "foo")
-  , ("wiki:navigation", navigation $ a ^. articleTitle)
-  ]
+editor a = I.callTemplate "editor" $ do
+  "wiki:title" ## I.textSplice $ a ^. articleTitle
+  "wiki:content" ##  I.callTemplate "editor" noSplices
+  "wiki:source" ## I.textSplice "foo"
+  "wiki:navigation" ## navigation $ a ^. articleTitle
 
 navigation :: Monad m => T.Text -> Splice m
 navigation title = return

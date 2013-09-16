@@ -14,10 +14,10 @@ import Test.Hspec
 import Wikirick.Backends.JSONConnection
 
 evalJSONConnection :: MonadIO m => RequestBuilder m () -> Handler JSONConnection JSONConnection a -> m (Either T.Text a)
-evalJSONConnection req action = evalHandler req action initJSONConnection
+evalJSONConnection req action = evalHandler Nothing req action initJSONConnection
 
 runJSONConnection :: MonadIO m => RequestBuilder m () -> Handler JSONConnection JSONConnection a -> m (Either T.Text Response)
-runJSONConnection req action = runHandler req action initJSONConnection
+runJSONConnection req action = runHandler Nothing req action initJSONConnection
 
 jsonConnectionSpec :: Spec
 jsonConnectionSpec = describe "JSON Connector" $ do

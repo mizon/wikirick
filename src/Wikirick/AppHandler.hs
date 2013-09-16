@@ -6,6 +6,7 @@ module Wikirick.AppHandler
 import Control.Monad.CatchIO
 import qualified Data.ByteString as BS
 import qualified Data.Text as T
+import Heist
 import qualified Heist.Interpreted as I
 import Snap
 import Snap.Snaplet.Heist
@@ -32,6 +33,7 @@ doHandleArticle title = do
   either newArticle openArticle article
   where
     newArticle ArticleNotFound = redirectTo $ EditPath $ def & articleTitle .~ title
+    newArticle _ = pass
 
     openArticle article
         = isXHR (renderArticle $ articleSplices article)
@@ -40,17 +42,16 @@ doHandleArticle title = do
     renderArticle = renderSplices "article"
     renderFull = renderSplices "base"
 
-articleSplices :: Article -> [(T.Text, I.Splice AppHandler)]
-articleSplices a =
-  [ ("wiki:title", I.textSplice $ a ^. articleTitle)
-  , ("wiki:content", I.callTemplate "article" [])
-  , ("wiki:sections", sections)
-  , ("wiki:navigation", V.navigation $ a ^. articleTitle)
-  ] where
+articleSplices :: Article -> Splices (I.Splice AppHandler)
+articleSplices a = do
+  "wiki:title" ## I.textSplice $ a ^. articleTitle
+  "wiki:content" ## I.callTemplate "article" noSplices
+  "wiki:sections" ## sections
+  "wiki:navigation" ## V.navigation $ a ^. articleTitle
+  where
     sections = pure
       [ Element "section" []
-        [ Element "h2" [] [TextNode "What is this?"]
-        , Element "p" [] [TextNode "Haskell"]
+        [ TextNode $ a ^. articleSource
         ]
       ]
 
@@ -58,11 +59,12 @@ handleEdit :: AppHandler ()
 handleEdit = do
   title <- textParam "title"
   article <- try $ with repo $ fetchArticle title
-  let article' = either (newArticle title) id article
-      splices = editorSplices $ article' ^. articleTitle
+  article' <- either (newArticle title) pure article
+  let splices = editorSplices $ article' ^. articleTitle
   isXHR (renderEditor splices) <|> renderFull splices
   where
-    newArticle title ArticleNotFound = def & articleTitle .~ title
+    newArticle title ArticleNotFound = pure $ def & articleTitle .~ title
+    newArticle _ _ = pass
 
     renderEditor = renderSplices "editor"
     renderFull = renderSplices "base"
@@ -72,18 +74,17 @@ handleSource = isXHR renderSource <|> renderFull where
   renderSource = undefined
   renderFull = undefined
 
-editorSplices :: T.Text -> [(T.Text, I.Splice AppHandler)]
-editorSplices title =
-  [ ("wiki:title", I.textSplice title)
-  , ("wiki:content", I.callTemplate "editor" [])
-  , ("wiki:source", I.textSplice "foo")
-  , ("wiki:navigation", V.navigation title)
-  ]
+editorSplices :: T.Text -> Splices (I.Splice AppHandler)
+editorSplices title = do
+  "wiki:title" ## I.textSplice title
+  "wiki:content" ## I.callTemplate "editor" noSplices
+  "wiki:source" ## I.textSplice "foo"
+  "wiki:navigation" ## V.navigation title
 
 isXHR :: AppHandler () -> AppHandler ()
 isXHR h = getsRequest (getHeader "X-Requested-With") >>= \case
   Just "XMLHttpRequest" -> h
   _ -> pass
 
-renderSplices :: BS.ByteString -> [(T.Text, I.Splice AppHandler)] -> AppHandler ()
+renderSplices :: BS.ByteString -> Splices (I.Splice AppHandler) -> AppHandler ()
 renderSplices name splices = heistLocal (I.bindSplices splices) $ render name
