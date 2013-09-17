@@ -6,6 +6,7 @@ import qualified Data.Text as T
 import Snap
 import qualified Snap.Snaplet.Test as SST
 import qualified Snap.Test as ST
+import qualified System.Directory as D
 import Test.Hspec
 
 import Wikirick.Application
@@ -19,21 +20,22 @@ runAppHandler :: MonadIO m => ST.RequestBuilder m () -> SnapletInit App App -> m
 runAppHandler req app = SST.runHandler Nothing req (route WS.routes) app
 
 appHandlerSpec :: Spec
-appHandlerSpec = describe "main handler" $ do
-  it "opens article pages" $ do
-    let repo' = repositoryMock
-          { R._fetchArticle = \title -> case title of
-              "FrontPage" -> return def
-              _ -> fail "invalid call"
-          }
-    res <- runAppHandler (ST.get "/wiki/FrontPage" mempty) $ mockedApp repo'
-    res `statusShouldBe` 200
+appHandlerSpec = describe "main handler" $
+  after (D.removeFile "site_key_test.txt") $ do
+    it "opens article pages" $ do
+      let repo' = repositoryMock
+            { R._fetchArticle = \title -> case title of
+                "FrontPage" -> return def
+                _ -> fail "invalid call"
+            }
+      res <- runAppHandler (ST.get "/wiki/FrontPage" mempty) $ mockedApp repo'
+      res `statusShouldBe` 200
 
-  it "opens article pages fragment" $ do
-    let repo' = repositoryMock
-          { R._fetchArticle = \title -> case title of
-              "FrontPage" -> return def
-              _ -> fail "invalid call"
-          }
-    res <- runAppHandler (ST.get "/wiki/FrontPage" mempty) $ mockedApp repo'
-    res `statusShouldBe` 200
+    it "opens article pages fragment" $ do
+      let repo' = repositoryMock
+            { R._fetchArticle = \title -> case title of
+                "FrontPage" -> return def
+                _ -> fail "invalid call"
+            }
+      res <- runAppHandler (ST.get "/wiki/FrontPage" mempty) $ mockedApp repo'
+      res `statusShouldBe` 200
