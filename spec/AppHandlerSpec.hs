@@ -26,14 +26,14 @@ runAppHandler req app = SST.runHandler Nothing req (route WS.routes) app
 
 shouldBeRendered :: Response' -> (BS.ByteString, Splices (I.Splice AppHandler)) -> Expectation
 shouldBeRendered res (templateName, s) = do
-  res' <- mustBeSuccess res
+  res' <- mustBeRight res
   body <- ST.getResponseBody res'
   body' <- renderView
   body `shouldBe` body'
   where
     renderView = do
       res' <- SST.runHandler Nothing (return ()) doRender $ mockedApp repositoryMock
-      res'' <- mustBeSuccess res'
+      res'' <- mustBeRight res'
       liftIO $ ST.getResponseBody res''
 
     doRender = SH.renderWithSplices templateName s
@@ -52,7 +52,7 @@ appHandlerSpec = describe "main handler" $
       res `shouldHaveStatus` 200
       res `shouldBeRendered` ("base", V.articleSplices article)
 
-    it "opens article pages fragment" $ do
+    it "opens article page fragments" $ do
       let article = def
       let repo' = repositoryMock
             { R._fetchArticle = \title -> case title of

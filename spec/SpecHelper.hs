@@ -62,12 +62,12 @@ newSpy = do
 
 type Response' = Either T.Text Response
 
-mustBeSuccess :: MonadIO m => Response' -> m Response
-mustBeSuccess = liftIO . either (fail . T.unpack) pure
+mustBeRight :: MonadIO m => Response' -> m Response
+mustBeRight = liftIO . either (fail . T.unpack) pure
 
 shouldHaveStatus :: Response' -> Int -> Expectation
 shouldHaveStatus res st = do
-  res' <- mustBeSuccess res
+  res' <- mustBeRight res
   rspStatus res' `shouldBe` st
 
 xhr :: Monad m => ST.RequestBuilder m ()
