@@ -4,7 +4,6 @@ module AppHandlerSpec
 
 import qualified Data.ByteString as BS
 import qualified Data.Text as T
-import Development.Placeholders
 import Heist
 import qualified Heist.Interpreted as I
 import Snap
@@ -26,7 +25,7 @@ runAppHandler :: MonadIO m => ST.RequestBuilder m () -> SnapletInit App App -> m
 runAppHandler req app = SST.runHandler Nothing req (route WS.routes) app
 
 shouldBeRendered :: Response' -> (BS.ByteString, Splices (I.Splice AppHandler)) -> Expectation
-shouldBeRendered res (name, s) = do
+shouldBeRendered res (templateName, s) = do
   res' <- mustBeSuccess res
   body <- ST.getResponseBody res'
   body' <- renderView
@@ -37,7 +36,7 @@ shouldBeRendered res (name, s) = do
       res'' <- mustBeSuccess res'
       liftIO $ ST.getResponseBody res''
 
-    doRender = SH.renderWithSplices name s
+    doRender = SH.renderWithSplices templateName s
 
 appHandlerSpec :: Spec
 appHandlerSpec = describe "main handler" $
@@ -50,7 +49,7 @@ appHandlerSpec = describe "main handler" $
                 _ -> fail "invalid call"
             }
       res <- runAppHandler (ST.get "/wiki/FrontPage" mempty) $ mockedApp repo'
-      res `statusShouldBe` 200
+      res `shouldHaveStatus` 200
       res `shouldBeRendered` ("base", V.articleSplices article)
 
     it "opens article pages fragment" $ do
@@ -60,6 +59,6 @@ appHandlerSpec = describe "main handler" $
                 "FrontPage" -> return article
                 _ -> fail "invalid call"
             }
-      res <- runAppHandler (ST.get "/wiki/FrontPage" mempty) $ mockedApp repo'
-      res `statusShouldBe` 200
+      res <- runAppHandler (xhr >> ST.get "/wiki/FrontPage" mempty) $ mockedApp repo'
+      res `shouldHaveStatus` 200
       res `shouldBeRendered` ("article", V.articleSplices article)

@@ -7,6 +7,7 @@ import qualified Data.Text as T
 import Snap
 import Snap.Snaplet.Heist
 import Snap.Snaplet.Session.Backends.CookieSession
+import qualified Snap.Test as ST
 import Test.Hspec
 
 import Wikirick.Application
@@ -64,7 +65,10 @@ type Response' = Either T.Text Response
 mustBeSuccess :: MonadIO m => Response' -> m Response
 mustBeSuccess = liftIO . either (fail . T.unpack) pure
 
-statusShouldBe :: Response' -> Int -> Expectation
-statusShouldBe res st = do
+shouldHaveStatus :: Response' -> Int -> Expectation
+shouldHaveStatus res st = do
   res' <- mustBeSuccess res
   rspStatus res' `shouldBe` st
+
+xhr :: Monad m => ST.RequestBuilder m ()
+xhr = ST.addHeader "X-Requested-With" "XMLHttpRequest"
