@@ -61,8 +61,8 @@ newSpy = do
 
 type Response' = Either T.Text Response
 
-mustBeSuccess :: Response' -> IO Response
-mustBeSuccess = either (fail . T.unpack) pure
+mustBeSuccess :: MonadIO m => Response' -> m Response
+mustBeSuccess = liftIO . either (fail . T.unpack) pure
 
 statusShouldBe :: Response' -> Int -> Expectation
 statusShouldBe res st = do

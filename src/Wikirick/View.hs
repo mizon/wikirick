@@ -1,5 +1,6 @@
 module Wikirick.View
-  ( navigation
+  ( articleSplices
+  , navigation
   ) where
 
 import qualified Data.Text as T
@@ -7,8 +8,22 @@ import Heist
 import Heist.Interpreted as I
 import Text.XmlHtml
 
-import Wikirick.Repository
+import Wikirick.Application
 import Wikirick.Import
+import Wikirick.Repository
+
+articleSplices :: Article -> Splices (I.Splice AppHandler)
+articleSplices a = do
+  "wiki:title" ## I.textSplice $ a ^. articleTitle
+  "wiki:content" ## I.callTemplate "article" noSplices
+  "wiki:sections" ## sections
+  "wiki:navigation" ## navigation $ a ^. articleTitle
+  where
+    sections = pure
+      [ Element "section" []
+        [ TextNode $ a ^. articleSource
+        ]
+      ]
 
 editor :: Monad m => Article -> Splice m
 editor a = I.callTemplate "editor" $ do

@@ -36,24 +36,11 @@ doHandleArticle title = do
     newArticle _ = pass
 
     openArticle article
-        = isXHR (renderArticle $ articleSplices article)
-      <|> renderFull (articleSplices article)
+        = isXHR (renderArticle $ V.articleSplices article)
+      <|> renderFull (V.articleSplices article)
 
     renderArticle = renderSplices "article"
     renderFull = renderSplices "base"
-
-articleSplices :: Article -> Splices (I.Splice AppHandler)
-articleSplices a = do
-  "wiki:title" ## I.textSplice $ a ^. articleTitle
-  "wiki:content" ## I.callTemplate "article" noSplices
-  "wiki:sections" ## sections
-  "wiki:navigation" ## V.navigation $ a ^. articleTitle
-  where
-    sections = pure
-      [ Element "section" []
-        [ TextNode $ a ^. articleSource
-        ]
-      ]
 
 handleEdit :: AppHandler ()
 handleEdit = do
